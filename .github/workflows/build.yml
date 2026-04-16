@@ -1,6 +1,14 @@
 name: Build YouLoop
 on:
- push:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to build'
+        required: false
+        default: 'main'
+  
    
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -27,9 +35,9 @@ jobs:
            
       - name: Download iOS SDK
         run: |
-          git clone --quiet --depth=1 -n --filter=tree:0 https://github.com/Tonwalter888/iOS-SDKs.git
-          cd iOS-SDKs
-          git sparse-checkout set --no-cone iPhoneOS18.6.sdk
+          git clone --quiet --depth=1 -n --filter=tree:0 https://github.com/theos/sdks.git
+          cd sdks
+          git sparse-checkout set --no-cone iPhoneOS16.5.sdk
           git checkout
           mv *.sdk $THEOS/sdks
 
@@ -43,7 +51,7 @@ jobs:
         run: git clone --quiet --depth=1 https://github.com/PoomSmart/YTVideoOverlay.git
 
       - name: Clone YouLoop
-        run: git clone --quiet --depth=1 https://github.com/Tonwalter888/YouLoop.git
+        run: git clone --quiet --depth=1 --branch ${{ github.event.inputs.branch || 'main' }} https://github.com/bhackel/YouLoop.git
 
       - name: Build YouLoop
         run: |
@@ -54,7 +62,7 @@ jobs:
           make clean package DEBUG=0 FINALPACKAGE=1 THEOS_PACKAGE_SCHEME=roothide
           mv packages/*.deb ${{ github.workspace }}
 
-      - name: Output tweak .deb(s)
+      - name: Upload the tweak .deb(s)
         uses: actions/upload-artifact@v7
         with:
          name: YouLoop v${{ env.YOULOOP_VERSION }}
@@ -63,12 +71,12 @@ jobs:
          overwrite: true
 
       - name: Create a draft release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: v${{ env.YOULOOP_VERSION }}
           name: v${{ env.YOULOOP_VERSION }} 
           files: |
-             dev.water888.youloop_${{ env.YOULOOP_VERSION }}_iphoneos-arm.deb
-             dev.water888.youloop_${{ env.YOULOOP_VERSION }}_iphoneos-arm64.deb
-             dev.water888.youloop_${{ env.YOULOOP_VERSION }}_iphoneos-arm64e.deb
+             com.bhackel.youloop_${{ env.YOULOOP_VERSION }}_iphoneos-arm.deb
+             com.bhackel.youloop_${{ env.YOULOOP_VERSION }}_iphoneos-arm64.deb
+             com.bhackel.youloop_${{ env.YOULOOP_VERSION }}_iphoneos-arm64e.deb
           draft: true
